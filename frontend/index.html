@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jev vs Laya — decision bench</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">same questions · same state · timed</p>
+      <h1>Jev vs Laya</h1>
+      <p class="lede">Run identical typed decisions on TypeSafe Jev (hosted) and Convai Laya (local) and compare latency plus answer quality.</p>
+    </div>
+    <div class="status-row" id="status-row"></div>
+  </header>
+
+  <section class="setup" id="setup"></section>
+
+  <nav class="tabs">
+    <button class="tab is-on" data-tab="bench">Benchmark</button>
+    <button class="tab" data-tab="play">Playground</button>
+  </nav>
+
+  <section id="panel-bench" class="panel">
+    <div class="toolbar">
+      <button id="run-all" class="primary">Run all cases</button>
+      <label class="check"><input type="checkbox" id="use-jev" checked /> Jev</label>
+      <label class="check"><input type="checkbox" id="use-laya" checked /> Laya</label>
+      <span id="run-note" class="note"></span>
+    </div>
+    <div id="summary" class="summary"></div>
+    <div id="cases" class="cases"></div>
+  </section>
+
+  <section id="panel-play" class="panel hidden">
+    <div class="play-grid">
+      <div>
+        <label for="play-state">State (JSON or plain text)</label>
+        <textarea id="play-state">{
+  "from": "user@acme.com",
+  "subject": "Duplicate charge on invoice #4411",
+  "body": "Hi, we were billed twice for March. Please refund the duplicate today or we will cancel our plan."
+}</textarea>
+      </div>
+      <div>
+        <label for="play-questions">Questions (Jev / Laya schema)</label>
+        <textarea id="play-questions"></textarea>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button id="run-play" class="primary">Run both</button>
+      <span id="play-note" class="note"></span>
+    </div>
+    <div id="play-summary" class="summary"></div>
+    <div id="play-out"></div>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>
