@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import jev_client, laya_client
+from backend import game, jev_client, laya_client
 from backend.cases import list_cases
 from backend.score import score_case, summarize
 
@@ -31,6 +31,16 @@ class PlayRequest(BaseModel):
     state: object
     questions: dict
     models: list[str] = Field(default_factory=lambda: ["jev", "laya"])
+
+
+class GameStartRequest(BaseModel):
+    models: list[str] = Field(default_factory=lambda: ["jev", "laya"])
+    seed: int | None = None
+
+
+class GameTickRequest(BaseModel):
+    session_id: str
+    models: list[str] | None = None
 
 
 @app.get("/api/status")
@@ -77,6 +87,71 @@ def api_play(body: PlayRequest):
     }
     result = _run_case(row, body.models)
     return {"row": result, "summary": summarize([result])}
+
+
+@app.post("/api/game/start")
+def api_game_start(body: GameStartRequest):
+    try:
+        return game.start_game(body.models, body.seed)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/game/{session_id}")
+def api_game_get(session_id: str):
+    session = game.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Unknown game session")
+    return game.snapshot(session)
+
+
+@app.post("/api/game/tick")
+def api_game_tick(body: GameTickRequest):
+    # One room for each still-playing model: ask Jev/Laya, then resolve the dungeon.
+    session = game.get_session(body.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Unknown game session")
+
+    wanted = body.models or session["models"]
+    turns = {}
+    for name in wanted:
+        if name not in session["players"]:
+            continue
+        pending = game.clone_pending_state(session, name)
+        if not pending:
+            continue
+        state, questions = pending
+        try:
+            if name == "jev":
+                result = jev_client.decide(state, questions)
+            elif name == "laya":
+                result = laya_client.decide(state, questions)
+            else:
+                result = {"ok": False, "error": f"unknown model {name}"}
+        except Exception as exc:
+            result = {"ok": False, "model": name, "error": str(exc)}
+
+        if not result.get("ok"):
+            turns[name] = {"ok": False, "error": result.get("error") or "decision failed"}
+            continue
+
+        outcome = game.apply_model_turn(
+            session,
+            name,
+            result.get("answers") or {},
+            result.get("latency_ms"),
+        )
+        turns[name] = {
+            "ok": True,
+            "latency_ms": result.get("latency_ms"),
+            "answers": result.get("answers"),
+            "action": outcome.get("action"),
+            "lines": outcome.get("lines") or [],
+        }
+
+    snap = game.snapshot(session)
+    snap["turns"] = turns
+    return snap
 
 
 def _run_case(case: dict, models: list[str]) -> dict:

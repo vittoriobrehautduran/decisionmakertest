@@ -9,25 +9,88 @@
 <body>
   <header class="top">
     <div>
-      <p class="eyebrow">same questions · same state · timed</p>
+      <p class="eyebrow">same email · same questions · timed</p>
       <h1>Jev vs Laya</h1>
-      <p class="lede">Run identical typed decisions on TypeSafe Jev (hosted) and Convai Laya (local) and compare latency plus answer quality.</p>
+      <p class="lede">
+        Two decision engines look at the same message and answer the same questions
+        (who should handle it, how urgent it is, is the customer about to leave, …).
+        Jev runs in the cloud. Laya runs on this machine’s GPU. This page times them
+        and checks whether the answers make sense.
+      </p>
     </div>
     <div class="status-row" id="status-row"></div>
   </header>
 
+  <section class="who" aria-label="What each model is">
+    <article class="who-card jev">
+      <h2>Jev</h2>
+      <p>Hosted API from TypeSafe. You send the email, they send back typed answers. Needs an API key.</p>
+    </article>
+    <article class="who-card laya">
+      <h2>Laya</h2>
+      <p>Local model. Weights stay on this computer and inference runs on your NVIDIA GPU. No cloud round-trip.</p>
+    </article>
+  </section>
+
   <section class="setup" id="setup"></section>
 
-  <nav class="tabs">
-    <button class="tab is-on" data-tab="bench">Benchmark</button>
-    <button class="tab" data-tab="play">Playground</button>
+  <nav class="tabs" role="tablist">
+    <button class="tab is-on" data-tab="speed" role="tab">Speed race</button>
+    <button class="tab" data-tab="game" role="tab">Live game</button>
+    <button class="tab" data-tab="bench" role="tab">Answer quality</button>
+    <button class="tab" data-tab="play" role="tab">Try your own</button>
   </nav>
 
-  <section id="panel-bench" class="panel">
+  <section id="panel-speed" class="panel">
+    <p class="panel-lead">
+      Same support email, asked the same five questions, over and over.
+      Pick who to run. The bars are milliseconds — shorter is faster.
+    </p>
     <div class="toolbar">
-      <button id="run-all" class="primary">Run all cases</button>
-      <label class="check"><input type="checkbox" id="use-jev" checked /> Jev</label>
-      <label class="check"><input type="checkbox" id="use-laya" checked /> Laya</label>
+      <label class="repeats">
+        Rounds
+        <select id="speed-rounds">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="8">8</option>
+        </select>
+      </label>
+      <button id="speed-jev" class="btn jev">Run Jev</button>
+      <button id="speed-laya" class="btn laya">Run Laya</button>
+      <button id="speed-both" class="primary">Race both</button>
+      <span id="speed-note" class="note"></span>
+    </div>
+    <div id="speed-chart" class="speed-board"></div>
+  </section>
+
+  <section id="panel-game" class="panel hidden">
+    <p class="panel-lead">
+      Ashen Gate is a tiny visual dungeon. Watch the pawns move room to room.
+      Each model plays in its own stage: fight monsters, dodge traps, open chests.
+      Speech bubbles show their choice. HP bar drops when they guess wrong.
+    </p>
+    <div class="toolbar">
+      <button id="game-jev" class="btn jev">Play Jev</button>
+      <button id="game-laya" class="btn laya">Play Laya</button>
+      <button id="game-both" class="primary">Play both live</button>
+      <button id="game-stop" class="btn" disabled>Stop</button>
+      <span id="game-note" class="note"></span>
+    </div>
+    <div id="game-board" class="game-board">
+      <p class="speed-empty">Hit Play to watch them walk the dungeon. Same rooms, different choices.</p>
+    </div>
+  </section>
+
+  <section id="panel-bench" class="panel hidden">
+    <p class="panel-lead">
+      Eight labeled examples. After a run, <span class="ok">match</span> means the model
+      agreed with the gold answer, <span class="no">miss</span> means it didn’t.
+      You can run one model or both.
+    </p>
+    <div class="toolbar">
+      <button id="bench-jev" class="btn jev">Run Jev</button>
+      <button id="bench-laya" class="btn laya">Run Laya</button>
+      <button id="bench-both" class="primary">Run both</button>
       <span id="run-note" class="note"></span>
     </div>
     <div id="summary" class="summary"></div>
@@ -35,9 +98,13 @@
   </section>
 
   <section id="panel-play" class="panel hidden">
+    <p class="panel-lead">
+      Paste any message on the left. The right side is the question list both models will answer.
+      <code>choice</code> = pick a label, <code>score</code> = 0 / 1 / 2 scale, <code>noul</code> = yes/no probability.
+    </p>
     <div class="play-grid">
       <div>
-        <label for="play-state">State (JSON or plain text)</label>
+        <label for="play-state">The message (JSON or plain text)</label>
         <textarea id="play-state">{
   "from": "user@acme.com",
   "subject": "Duplicate charge on invoice #4411",
@@ -45,12 +112,14 @@
 }</textarea>
       </div>
       <div>
-        <label for="play-questions">Questions (Jev / Laya schema)</label>
+        <label for="play-questions">Questions both models must answer</label>
         <textarea id="play-questions"></textarea>
       </div>
     </div>
     <div class="toolbar">
-      <button id="run-play" class="primary">Run both</button>
+      <button id="play-jev" class="btn jev">Run Jev</button>
+      <button id="play-laya" class="btn laya">Run Laya</button>
+      <button id="play-both" class="primary">Run both</button>
       <span id="play-note" class="note"></span>
     </div>
     <div id="play-summary" class="summary"></div>

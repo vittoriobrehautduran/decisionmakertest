@@ -13,6 +13,9 @@ os.environ.setdefault("HF_HOME", str(HF_CACHE))
 os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(HF_CACHE))
 # transformers can deadlock on import if TensorFlow is installed.
 os.environ.setdefault("USE_TF", "0")
+# PyTorch 2.14 tries to JIT Triton kernels on the first GPU call and needs gcc.
+# Regular CUDA kernels are enough for Laya, and this avoids a compiler on PATH.
+os.environ.setdefault("TORCH_DISABLE_NATIVE_JIT", "1")
 
 
 def _clean(value: str | None) -> str:
@@ -22,8 +25,10 @@ def _clean(value: str | None) -> str:
 TYPESAFE_API_KEY = _clean(os.getenv("TYPESAFE_API_KEY"))
 JEV_AGENT_KEY = _clean(os.getenv("JEV_AGENT_KEY"))
 JEV_MODEL = _clean(os.getenv("JEV_MODEL")) or "jev-1.13.0"
-LAYA_DEVICE = _clean(os.getenv("LAYA_DEVICE")) or "cpu"
+LAYA_DEVICE = _clean(os.getenv("LAYA_DEVICE")) or "auto"
 LAYA_MODEL = _clean(os.getenv("LAYA_MODEL")) or "convaiinnovations/laya"
+# "multilingual" is mmBERT-base and much faster on a 4GB laptop GPU.
+LAYA_SUBFOLDER = _clean(os.getenv("LAYA_SUBFOLDER")) or None
 
 
 def jev_config() -> dict:
